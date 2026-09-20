@@ -7,7 +7,6 @@ import type {
 } from "@opencode-ai/sdk/v2/client";
 import {
   copyMessagesById,
-  copyOpenCodeRecord,
   createOpenCodeThreadState,
   reduceOpenCodeThreadState,
 } from "./openCodeThreadState";
@@ -32,6 +31,7 @@ import {
 } from "./OpenCodeEventSource";
 import { generateId } from "@assistant-ui/core";
 import {
+  nullProtoRecord,
   resolveFileMediaType,
   resolveImageMediaType,
   toMediaWireUrl,
@@ -366,7 +366,7 @@ export class OpenCodeThreadController implements OpenCodeThreadControllerLike {
   ) {
     if (this.state.childSessionsById[sessionId] === childState) return;
 
-    const childSessionsById = copyOpenCodeRecord(this.state.childSessionsById);
+    const childSessionsById = nullProtoRecord(this.state.childSessionsById);
     childSessionsById[sessionId] = childState;
     this.state = {
       ...this.state,
@@ -457,7 +457,8 @@ export class OpenCodeThreadController implements OpenCodeThreadControllerLike {
       entry.unsubscribe?.();
       entry.controller.discard();
       this.childControllersById.delete(sessionId);
-      const { [sessionId]: _removed, ...remaining } = childSessionsById;
+      const remaining = nullProtoRecord(childSessionsById);
+      delete remaining[sessionId];
       childSessionsById = remaining;
     }
 
@@ -480,10 +481,9 @@ export class OpenCodeThreadController implements OpenCodeThreadControllerLike {
         unsubscribe: null,
       };
       this.childControllersById.set(sessionId, entry);
-      childSessionsById = {
-        ...childSessionsById,
-        [sessionId]: controller.getState(),
-      };
+      const nextChildSessionsById = nullProtoRecord(childSessionsById);
+      nextChildSessionsById[sessionId] = controller.getState();
+      childSessionsById = nextChildSessionsById;
       added.push([sessionId, entry]);
     }
 
